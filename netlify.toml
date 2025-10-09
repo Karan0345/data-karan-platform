@@ -1,17 +1,8 @@
-# This configuration file tells Netlify how to build and serve your site.
-# It's essential for Single-Page Applications (SPAs) like React.
-
 [build]
-  # This command tells Netlify to use your project's build script.
-  command = "yarn build"
-  # This is the directory where your built site is located.
+  command = "yarn install && yarn run build"
   publish = "dist"
 
 [[redirects]]
-  # The "/*" rule is a wildcard that matches any path.
   from = "/*"
-  # This redirects all matched paths to your main index.html file.
   to = "/index.html"
-  # The status 200 means "OK" and serves the file without changing the URL in the browser.
-  # This is the key to making client-side routing work.
   status = 200
