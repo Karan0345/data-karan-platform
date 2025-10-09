@@ -1,15 +1,14 @@
 # This configuration file tells Netlify how to build and serve your site.
-# The redirects rule is crucial for single-page applications (SPAs) like React.
-
 [build]
-  # Command to build your site
+  # The command to build your site. We use yarn as per the project setup.
   command = "yarn build"
-  # The directory where the built site is located
+  # The directory that contains the built site. Vite's default is 'dist'.
   publish = "dist"
 
+# The following rule is crucial for Single-Page Applications (SPAs).
+# It ensures that any direct URL request is redirected to the main index.html file,
+# allowing React Router to handle the routing on the client side.
 [[redirects]]
-  # This rule ensures that all paths are redirected to the main index.html file.
-  # This allows your client-side router (React Router) to handle all page navigation.
   from = "/*"
   to = "/index.html"
   status = 200
