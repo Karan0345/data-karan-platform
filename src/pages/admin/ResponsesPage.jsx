@@ -1,17 +1,17 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
-import Header from '../../components/layout/Header';
+import Header from '../../components/shared/Header';
 import { Loader2, AlertTriangle, ArrowLeft, Inbox, Download, Search, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { useState, useMemo } from 'react';
 import { useDebounce } from '../../hooks/useDebounce';
 import toast from 'react-hot-toast';
+import { Skeleton } from '../../components/shared/Skeleton';
 
 const PAGE_SIZE = 10;
 
-// This will fetch form metadata once, and it won't be refetched on search/pagination changes
 const fetchFormMeta = async (formId) => {
     const { data, error } = await supabase
         .from('forms')
@@ -22,7 +22,6 @@ const fetchFormMeta = async (formId) => {
     return data;
 };
 
-// This will fetch the responses and will be refetched
 const fetchResponses = async (formId, searchTerm, page) => {
     const { data, error } = await supabase.rpc('get_paginated_form_responses', {
         p_form_id: formId,
@@ -39,6 +38,35 @@ const deleteResponse = async (responseId) => {
     if (error) throw new Error(error.message);
 };
 
+const ResponsesSkeleton = ({ headers }) => (
+    <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-border">
+            <thead className="bg-muted/50">
+                <tr>
+                    {headers.map(header => (
+                        <th key={header} scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{header}</th>
+                    ))}
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Submitted At</th>
+                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+                {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+                    <tr key={i}>
+                        {headers.map(header => (
+                            <td key={header} className="px-6 py-4"><Skeleton className="h-4 w-24 rounded" /></td>
+                        ))}
+                        <td className="px-6 py-4"><Skeleton className="h-4 w-32 rounded" /></td>
+                        <td className="px-6 py-4 text-right">
+                            <Skeleton className="h-8 w-8 rounded ml-auto" />
+                        </td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+    </div>
+);
+
 const ResponsesPage = () => {
     const { formId } = useParams();
     const queryClient = useQueryClient();
@@ -54,7 +82,7 @@ const ResponsesPage = () => {
     const { data: responses, isLoading: areResponsesLoading, isError: areResponsesError, error: responsesError } = useQuery({
         queryKey: ['formResponses', formId, debouncedSearchTerm, currentPage],
         queryFn: () => fetchResponses(formId, debouncedSearchTerm, currentPage),
-        enabled: !!formMeta, // Only run this query once formMeta is available
+        enabled: !!formMeta,
         keepPreviousData: true,
     });
     
@@ -63,7 +91,7 @@ const ResponsesPage = () => {
         onSuccess: () => {
             toast.success('Response deleted successfully');
             queryClient.invalidateQueries({ queryKey: ['formResponses', formId] });
-            queryClient.invalidateQueries({ queryKey: ['forms'] }); // Invalidate dashboard to update response count
+            queryClient.invalidateQueries({ queryKey: ['forms'] });
         },
         onError: (error) => {
             toast.error(`Failed to delete response: ${error.message}`);
@@ -82,7 +110,7 @@ const ResponsesPage = () => {
             p_form_id: formId,
             search_term: '',
             page_number: 1,
-            page_size: 10000 // A large number to get all responses
+            page_size: 10000 
         });
         toast.dismiss();
 
@@ -132,34 +160,26 @@ const ResponsesPage = () => {
     const tableHeaders = useMemo(() => formMeta?.fields?.map(field => field.label) || [], [formMeta]);
     const totalCount = responses?.[0]?.total_count || 0;
     const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-    
-    const isLoading = isMetaLoading || areResponsesLoading;
-    const isError = isMetaError || areResponsesError;
-    const error = metaError || responsesError;
-    const hasResponses = !isLoading && !isError && responses && responses.length > 0;
+    const hasResponses = !areResponsesLoading && !areResponsesError && responses && responses.length > 0;
 
     return (
         <div className="min-h-screen bg-background">
             <Header />
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {isLoading && (
+                {isMetaLoading ? (
                     <div className="flex justify-center items-center py-20">
                         <Loader2 className="h-12 w-12 animate-spin text-primary" />
                     </div>
-                )}
-
-                {isError && (
+                ) : isMetaError ? (
                     <div className="text-center py-20 px-4">
                         <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
-                        <h3 className="mt-2 text-lg font-medium text-foreground">Failed to load data</h3>
-                        <p className="mt-1 text-sm text-destructive">{error.message}</p>
+                        <h3 className="mt-2 text-lg font-medium text-foreground">Failed to load form details</h3>
+                        <p className="mt-1 text-sm text-destructive">{metaError.message}</p>
                         <Link to="/dashboard" className="mt-6 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-primary-foreground bg-primary hover:bg-primary/90">
                             Back to Dashboard
                         </Link>
                     </div>
-                )}
-
-                {!isLoading && !isError && formMeta && (
+                ) : formMeta && (
                      <>
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
                             <div>
@@ -194,10 +214,18 @@ const ResponsesPage = () => {
                                     />
                                 </div>
                             </div>
-                            {!hasResponses ? (
+                            {areResponsesLoading ? (
+                                <ResponsesSkeleton headers={tableHeaders} />
+                            ) : areResponsesError ? (
+                                <div className="text-center py-20 px-4">
+                                    <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
+                                    <h3 className="mt-2 text-lg font-medium text-foreground">Failed to load responses</h3>
+                                    <p className="mt-1 text-sm text-destructive">{responsesError.message}</p>
+                                </div>
+                            ) : !hasResponses ? (
                                 <div className="text-center py-20">
                                     <Inbox className="mx-auto h-12 w-12 text-muted-foreground" />
-                                    <h3 className="mt-2 text-lg font-medium text-foreground">{debouncedSearchTerm ? 'No matching responses' : 'No responses yet'}</h3>
+                                    <h3 className="mt-2 text-lg font-medium text-foreground">{debouncedSearchTerm ? 'No matching responses' : 'Try a different search term.'}</h3>
                                     <p className="mt-1 text-sm text-muted-foreground">{debouncedSearchTerm ? 'Try a different search term.' : 'Share your form to start collecting data.'}</p>
                                 </div>
                             ) : (

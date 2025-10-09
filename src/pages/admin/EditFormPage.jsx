@@ -6,7 +6,7 @@ import * as z from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
-import Header from '../../components/layout/Header';
+import Header from '../../components/shared/Header';
 import { ArrowLeft, Loader2, AlertTriangle, PlusCircle, Trash2 } from 'lucide-react';
 
 const fieldSchema = z.object({

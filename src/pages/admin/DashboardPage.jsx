@@ -1,11 +1,14 @@
-import Header from '../../components/layout/Header';
+import Header from '../../components/shared/Header';
 import { PlusCircle, FileText, Eye, Share2, Trash2, Loader2, AlertTriangle, Edit, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import { useState } from 'react';
-import ShareModal from '../../components/ShareModal';
+import ShareModal from '../../components/shared/ShareModal';
+import { Skeleton } from '../../components/shared/Skeleton';
+import AnalyticsCards from '../../components/admin/AnalyticsCards';
+import SubmissionsChart from '../../components/admin/SubmissionsChart';
 
 const PAGE_SIZE = 10;
 
@@ -29,6 +32,45 @@ const deleteForm = async (formId) => {
     if (formError) throw new Error(`Failed to delete form: ${formError.message}`);
 };
 
+const DashboardSkeleton = () => (
+    <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-border">
+            <thead className="bg-muted/50">
+                <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Form Title</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Responses</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Created At</th>
+                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+                {Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={i}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                            <Skeleton className="h-4 w-48 rounded" />
+                            <Skeleton className="h-3 w-64 rounded mt-2" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                            <Skeleton className="h-4 w-10 rounded" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                            <Skeleton className="h-4 w-24 rounded" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <div className="flex justify-end items-center space-x-2">
+                                <Skeleton className="h-8 w-8 rounded" />
+                                <Skeleton className="h-8 w-8 rounded" />
+                                <Skeleton className="h-8 w-8 rounded" />
+                                <Skeleton className="h-8 w-8 rounded" />
+                            </div>
+                        </td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+    </div>
+);
+
 const DashboardPage = () => {
     const queryClient = useQueryClient();
     const [currentPage, setCurrentPage] = useState(1);
@@ -45,6 +87,8 @@ const DashboardPage = () => {
         onSuccess: () => {
             toast.success('Form deleted successfully');
             queryClient.invalidateQueries({ queryKey: ['forms'] });
+            queryClient.invalidateQueries({ queryKey: ['analyticsSummary'] });
+            queryClient.invalidateQueries({ queryKey: ['submissionCounts'] });
         },
         onError: (error) => {
             toast.error(error.message);
@@ -78,7 +122,7 @@ const DashboardPage = () => {
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
                         <div>
                             <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-                            <p className="mt-1 text-muted-foreground">Manage your forms and view responses.</p>
+                            <p className="mt-1 text-muted-foreground">An overview of your forms and their performance.</p>
                         </div>
                         <Link to="/create-form" className="mt-4 sm:mt-0 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                             <PlusCircle className="mr-2 h-5 w-5" />
@@ -86,26 +130,25 @@ const DashboardPage = () => {
                         </Link>
                     </div>
 
+                    <div className="space-y-8 mb-8">
+                        <AnalyticsCards />
+                        <SubmissionsChart />
+                    </div>
+
                     <div className="bg-card border rounded-lg shadow-sm">
                         <div className="p-6 border-b flex justify-between items-center">
                             <h2 className="text-xl font-semibold">Your Forms</h2>
                         </div>
                         
-                        {isLoading && (
-                            <div className="flex justify-center items-center py-20">
-                                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                            </div>
-                        )}
-
-                        {isError && (
+                        {isLoading ? (
+                            <DashboardSkeleton />
+                        ) : isError ? (
                             <div className="text-center py-20 px-4">
                                 <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
                                 <h3 className="mt-2 text-lg font-medium text-foreground">Failed to load forms</h3>
                                 <p className="mt-1 text-sm text-destructive">{error.message}</p>
                             </div>
-                        )}
-
-                        {!isLoading && !isError && !hasForms && (
+                        ) : !hasForms ? (
                             <div className="text-center py-20">
                                 <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
                                 <h3 className="mt-2 text-lg font-medium text-foreground">No forms created yet</h3>
@@ -115,9 +158,7 @@ const DashboardPage = () => {
                                     Create New Form
                                 </Link>
                             </div>
-                        )}
-
-                        {hasForms && (
+                        ) : (
                             <>
                                 <div className="overflow-x-auto">
                                     <table className="min-w-full divide-y divide-border">

@@ -4,7 +4,7 @@ import LoginPage from './pages/auth/LoginPage';
 import SignUpPage from './pages/auth/SignUpPage';
 import DashboardPage from './pages/admin/DashboardPage';
 import NotFoundPage from './pages/NotFoundPage';
-import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedRoute from './components/shared/ProtectedRoute';
 import CreateFormPage from './pages/admin/CreateFormPage';
 import EditFormPage from './pages/admin/EditFormPage';
 import PublicFormPage from './pages/PublicFormPage';
@@ -54,8 +54,9 @@ function App() {
                 } 
             />
 
-            <Route path="/form/:formId" element={<PublicFormPage />} />
+            {/* FIX: Specific route `/form/submitted` must come before the dynamic route `/form/:formId` to be matched correctly. */}
             <Route path="/form/submitted" element={<ThankYouPage />} />
+            <Route path="/form/:formId" element={<PublicFormPage />} />
 
             <Route path="*" element={<NotFoundPage />} />
         </Routes>
