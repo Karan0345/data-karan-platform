@@ -21,7 +21,7 @@ const Header = () => {
                 <div className="flex items-center space-x-8">
                     <Link to="/dashboard" className="flex items-center space-x-2">
                         <Database className="h-6 w-6 text-primary" />
-                        <span className="font-bold text-lg text-foreground">DataEntryX</span>
+                        <span className="font-bold text-lg text-foreground">Peoples Update</span>
                     </Link>
                     <div className="hidden md:flex items-center space-x-6">
                         <NavLink to="/dashboard" className={({isActive}) => `text-sm font-medium transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>Dashboard</NavLink>
